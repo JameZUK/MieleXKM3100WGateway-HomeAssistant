@@ -17,9 +17,6 @@ COPY package*.json ./
 # Install app dependencies
 RUN npm install --only=production
 
-# Copy the rest of the application source code
-COPY . .
-
 # Expose the port your app runs on (assuming 3000)
 EXPOSE 3000
 
