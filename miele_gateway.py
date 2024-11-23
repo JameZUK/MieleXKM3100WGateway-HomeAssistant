@@ -3,6 +3,7 @@ import re
 import json
 import hmac
 import hashlib
+import ipaddress
 from flask import Flask, request, jsonify, Response
 import requests as req
 from datetime import datetime
@@ -27,9 +28,20 @@ accept_header = 'application/vnd.miele.v1+json'
 def get_current_time_in_http_format():
     return datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S GMT')
 
-def is_valid_ip(ip):
-    pattern = r'^(25[0-5]|2[0-4]\d|1\d{2}|[1-9]?\d)(\.(?!$)|$){4}$'
-    return re.match(pattern, ip) is not None
+def is_valid_host(host):
+    # Validates if the host is a valid hostname or IP address
+    try:
+        # Try to parse as an IP address
+        ipaddress.ip_address(host)
+        return True
+    except ValueError:
+        # If not an IP, check if it's a valid hostname
+        # Hostname validation regex
+        hostname_regex = re.compile(
+            r'^(([a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*'
+            r'([A-Za-z0-9]|[A-Za-z0-9][A-Za-z0-9\-]*[A-Za-z0-9])$'
+        )
+        return re.match(hostname_regex, host) is not None
 
 def decrypt(payload, group_key, signature):
     key = group_key[:len(group_key)//2]
@@ -61,9 +73,14 @@ def init(resource):
     if debug_log:
         print(f'GET: {request.url}')
 
-    host = resource.strip('/').split('/')[0]
-    if not is_valid_ip(host):
-        return jsonify({'error': 'Invalid or missing IP address'}), 400
+    resource_path = '/' + resource
+    host_match = re.match(r'^/([^/]+)', resource_path)
+    host = host_match.group(1) if host_match else ''
+
+    if not host or not is_valid_host(host):
+        return jsonify({'error': 'Invalid or missing host'}), 400
+
+    resource_path = resource_path.replace(f'/{host}', '')
 
     try:
         act_date = get_current_time_in_http_format()
@@ -104,14 +121,19 @@ def main_route(resource, explore=False):
     if debug_log:
         print(f'GET: {request.url}')
 
-    resource = resource.strip('/')
-    parts = resource.split('/')
-    host = parts[0]
+    resource_path = '/' + resource
 
-    if not is_valid_ip(host):
-        return jsonify({'error': 'Invalid or missing IP address'}), 400
+    if resource_path.startswith('/explore'):
+        resource_path = resource_path.replace('/explore', '', 1)
+        explore = True
 
-    resource_path = '/' + '/'.join(parts[1:]) if len(parts) > 1 else '/'
+    host_match = re.match(r'^/([^/]+)', resource_path)
+    host = host_match.group(1) if host_match else ''
+
+    if not host or not is_valid_host(host):
+        return jsonify({'error': 'Invalid or missing host'}), 400
+
+    resource_path = resource_path.replace(f'/{host}', '')
 
     try:
         act_date = get_current_time_in_http_format()
