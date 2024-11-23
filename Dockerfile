@@ -11,13 +11,17 @@ ENV LANG=C.UTF-8 \
 RUN pip install --no-cache-dir flask requests cryptography
 
 # Set the working directory
-WORKDIR /usr/src/app
+#WORKDIR /usr/src/app
+ENV NODE_ENV=production
 
-# Copy application files
-COPY . .
+# Copy the workout data script
+COPY miele_gateway.py /
+
+# Copy the startup script
+COPY run.sh /
 
 # Make run.sh executable
-RUN chmod +x /run.sh
+RUN chmod a+x /run.sh
 
 # Expose the port
 EXPOSE 3000
