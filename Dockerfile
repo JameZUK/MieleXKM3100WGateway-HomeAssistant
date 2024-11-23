@@ -5,30 +5,21 @@ FROM ${BUILD_FROM}
 # Set environment variables
 ENV LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
-    NODE_ENV=production
+    PYTHONUNBUFFERED=1
 
-# Install necessary packages (if any)
-# For Node.js base images, Node.js and npm are pre-installed
+# Install necessary packages
+RUN pip install --no-cache-dir flask requests cryptography
 
-# Set the working directory inside the container
+# Set the working directory
 WORKDIR /usr/src/app
 
-# Copy package.json and package-lock.json
-COPY package*.json ./
-
-# Install app dependencies using npm ci for a clean install
-RUN npm ci --only=production
-
-# Copy the rest of the application source code
+# Copy application files
 COPY . .
 
-# Copy the run.sh script to the root directory
-COPY run.sh /run.sh
-
-# Make the run.sh script executable
+# Make run.sh executable
 RUN chmod +x /run.sh
 
-# Expose the port your app runs on (assuming 3000)
+# Expose the port
 EXPOSE 3000
 
 # Start the application using run.sh
