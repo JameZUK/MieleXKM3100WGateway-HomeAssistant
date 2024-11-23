@@ -1,3 +1,6 @@
+ARG BUILD_FROM
+FROM ${BUILD_FROM}
+
 # Use the official Node.js 18 image based on Alpine Linux
 FROM node:18-alpine
 
