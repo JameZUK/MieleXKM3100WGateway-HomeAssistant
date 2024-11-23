@@ -6,7 +6,6 @@ import hashlib
 from flask import Flask, request, jsonify, Response
 import requests as req
 from datetime import datetime
-from cryptography.hazmat.primitives import padding
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
 
@@ -37,10 +36,13 @@ def decrypt(payload, group_key, signature):
     iv_buf = bytes.fromhex(signature)
     iv = iv_buf[:len(iv_buf)//2]
 
+    # Append a zero byte to the payload
+    padded_payload = payload + b'\x00'
+
     cipher = Cipher(algorithms.AES(key), modes.CBC(iv), backend=default_backend())
     decryptor = cipher.decryptor()
-    padded_payload = payload + b'\x00'  # pad with zero byte to match block size
-    decrypted_data = decryptor.update(padded_payload) + decryptor.finalize()
+    decrypted_data = decryptor.update(padded_payload)
+    # Do not call decryptor.finalize() to mimic Node.js behavior
     return decrypted_data
 
 def iterate_to_all_hrefs(obj, host, resource_path):
@@ -80,6 +82,11 @@ def init(resource):
         response = req.put(url, headers=headers, json=data, timeout=10)
         response.raise_for_status()
         return jsonify(response.json())
+    except req.exceptions.HTTPError as e:
+        status_code = e.response.status_code if e.response else 500
+        error_message = e.response.reason if e.response else 'Initialization failed'
+        print(f'HTTP error during /init request to {host}: {error_message}')
+        return jsonify({'error': error_message}), status_code
     except req.exceptions.RequestException as e:
         print(f'Error during /init request to {host}: {e}')
         error_message = 'Appliance gateway is unavailable' if isinstance(e, (req.exceptions.ConnectionError, req.exceptions.Timeout)) else str(e)
@@ -127,8 +134,12 @@ def main_route(resource, explore=False):
         sig_parts = response_signature.split(':')
         server_signature = sig_parts[1] if len(sig_parts) >= 2 else ''
 
+        # Decrypt the response content
         data = decrypt(response.content, group_key, server_signature)
-        data_str = data.decode('utf-8', errors='ignore')
+        data_str = data.decode('utf-8', errors='ignore').rstrip('\x00')
+
+        if debug_log:
+            print(f'Decrypted data: {data_str}')
 
         if explore:
             json_data = json.loads(data_str)
@@ -149,6 +160,11 @@ def main_route(resource, explore=False):
             return Response(html_content, mimetype='text/html')
         else:
             return Response(data_str, mimetype='application/json')
+    except req.exceptions.HTTPError as e:
+        status_code = e.response.status_code if e.response else 500
+        error_message = e.response.reason if e.response else 'Request failed'
+        print(f'HTTP error during request to {host}{resource_path}: {error_message}')
+        return jsonify({'error': error_message}), status_code
     except req.exceptions.RequestException as e:
         print(f'Error during request to {host}{resource_path}: {e}')
         error_message = 'Appliance gateway is unavailable' if isinstance(e, (req.exceptions.ConnectionError, req.exceptions.Timeout)) else str(e)
