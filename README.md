@@ -58,7 +58,7 @@ To install the Miele Gateway add-on, you need to add the custom repository to yo
    - Click on the three dots in the top right corner and select Repositories.
    - In the Add repository field, enter the URL of the custom repository hosting the Miele Gateway add-on. For example:
      ```
-     [https://github.com/JameZUK/MieleXKM3100WGateway-HomeAssistant](https://github.com/JameZUK/MieleXKM3100WGateway-HomeAssistant)
+     https://github.com/JameZUK/MieleXKM3100WGateway-HomeAssistant
      ```
      Replace `yourusername` with the actual username if the repository is hosted on GitHub, or provide the correct URL if it's hosted elsewhere.
    - Click **Add** to add the repository.
