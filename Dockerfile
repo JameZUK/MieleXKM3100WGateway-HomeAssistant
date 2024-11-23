@@ -1,26 +1,30 @@
-# syntax=docker/dockerfile:1
-ARG BUILD_FROM
-FROM $BUILD_FROM
+# Use the official Node.js 18 image based on Alpine Linux
+FROM node:18-alpine
 
 COPY ["MieleXKM3100WGateway/package.json", "MieleXKM3100WGateway/package-lock.json*", "./"]
 
-RUN \
-     apk add --no-cache \
-        nodejs=18.17.1-r0 \
-        npm=9.6.6-r0\
-    \
-    && npm install
-
-WORKDIR /app
-
+# Set environment variables
+ENV LANG C.UTF-8
+ENV LC_ALL C.UTF-8
 ENV NODE_ENV=production
 
-EXPOSE 3000/tcp
+# Set the working directory inside the container
+WORKDIR /app
+
+# Copy package.json and package-lock.json
+COPY package*.json ./
+
+# Install app dependencies
+RUN npm install --only=production
+
+# Copy the rest of the application source code
+COPY . .
+
+# Expose the port your app runs on (assuming 3000)
+EXPOSE 3000
 
 COPY run.sh /
 RUN chmod a+x /run.sh
 
-COPY MieleXKM3100WGateway/mieleGateway.js ./
-
-#CMD [ "node", "mieleGateway.js" ]
+# Start the Node.js application
 CMD [ "/run.sh" ]
