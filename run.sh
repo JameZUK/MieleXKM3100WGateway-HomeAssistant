@@ -8,7 +8,7 @@ echo "KEY: $GROUPKEY"
 echo "Starting mileGateway..."
 while true
 do 
-  node mieleGateway.js
+  python3 miele_gateway.py
   sleep 2
   echo "Restarting..."
 done
