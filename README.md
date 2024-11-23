@@ -3,7 +3,7 @@
 
 An API gateway for Miele appliances that decrypts and exposes appliance data for integration with Home Assistant. This add-on enables communication with Miele appliances using the XKM 3100 W module by handling the necessary encryption and decryption, allowing for seamless integration and control within Home Assistant.
 
-Note: This script is based on the MieleXKM3100WGateway project by Ich-Eben, originally written in JavaScript.
+Note: This script is based on the [MieleXKM3100WGateway](https://github.com/Ich-Eben/MieleXKM3100WGateway) project by Ich-Eben, originally written in JavaScript.
 
 ## Table of Contents
 
@@ -58,7 +58,7 @@ To install the Miele Gateway add-on, you need to add the custom repository to yo
    - Click on the three dots in the top right corner and select Repositories.
    - In the Add repository field, enter the URL of the custom repository hosting the Miele Gateway add-on. For example:
      ```
-     https://github.com/yourusername/miele-gateway-addon
+     [[https://github.com/JameZUK/MieleXKM3100WGateway-HomeAssistant](https://github.com/JameZUK/MieleXKM3100WGateway-HomeAssistant)]
      ```
      Replace `yourusername` with the actual username if the repository is hosted on GitHub, or provide the correct URL if it's hosted elsewhere.
    - Click **Add** to add the repository.
@@ -203,7 +203,7 @@ Ensure that you have thoroughly reviewed the API endpoints exposed by the add-on
 
 ## Acknowledgments
 
-- **Original JavaScript Script**: This add-on is based on the MieleXKM3100WGateway project by Ich-Eben. The original script was written in JavaScript and provided the foundational functionality for communicating with Miele appliances.
+- **Original JavaScript Script**: This add-on is based on the [MieleXKM3100WGateway](https://github.com/Ich-Eben/MieleXKM3100WGateway) project by Ich-Eben. The original script was written in JavaScript and provided the foundational functionality for communicating with Miele appliances.
 - **Contributors**:
   - Ich-Eben: For the original JavaScript implementation and inspiration.
   - Community: For ongoing support and improvements.
