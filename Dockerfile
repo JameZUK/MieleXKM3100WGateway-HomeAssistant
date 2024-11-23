@@ -9,7 +9,12 @@ ENV LC_ALL C.UTF-8
 ENV NODE_ENV=production
 
 # Install app dependencies
-RUN npm install --only=production
+RUN \
+     apk add --no-cache \
+        nodejs \
+        npm \
+    \
+    && npm install
 
 # Set the working directory inside the container
 WORKDIR /app
