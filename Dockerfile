@@ -7,7 +7,7 @@ ENV LANG=C.UTF-8 \
     NODE_ENV=production
 
 # Set the working directory inside the container
-WORKDIR /usr/src/app
+WORKDIR /app
 
 # Copy application files
 COPY . .
