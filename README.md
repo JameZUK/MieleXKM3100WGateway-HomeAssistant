@@ -122,4 +122,69 @@ can communicate with it. Adjust firewall rules or network settings as needed.
 - Click **Start** to start the add-on.
 - Monitor the logs to ensure the add-on starts without errors.
 
-... [Content truncated for brevity. Add other sections similarly]
+## Usage
+
+Once the add-on is running, it exposes an API on port 3000. You can interact with your Miele appliance using the following endpoints:
+
+### Initialization
+
+Initialize the connection with your appliance.
+
+- **Endpoint:**
+
+  ```
+  http://<home_assistant_ip>:3000/init/<appliance_host>/
+  ```
+
+- **Method:** GET
+
+- **Parameters:**
+  - `<appliance_host>`: The IP address or hostname of your Miele appliance.
+
+- **Example:**
+
+  ```
+  http://localhost:3000/init/192.168.1.100/
+  ```
+
+### Explore Appliance Data
+
+Retrieve and explore the data exposed by your appliance.
+
+- **Endpoint:**
+
+  ```
+  http://<home_assistant_ip>:3000/explore/<appliance_host>/
+  ```
+
+- **Method:** GET
+
+- **Example:**
+
+  ```
+  http://localhost:3000/explore/192.168.1.100/
+  ```
+
+### Access Specific Data
+
+Access specific data or control endpoints of your appliance.
+
+- **Endpoint:**
+
+  ```
+  http://<home_assistant_ip>:3000/<appliance_host>/<path>
+  ```
+
+- **Method:** GET
+
+- **Parameters:**
+  - `<path>`: The specific API path you want to access.
+
+- **Example:**
+
+  ```
+  http://localhost:3000/192.168.1.100/Devices/Device1/Program/
+  ```
+
+... [Add remaining content as required]
+
