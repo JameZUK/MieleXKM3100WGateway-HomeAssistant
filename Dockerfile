@@ -6,15 +6,15 @@ ENV LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
     NODE_ENV=production
 
-# Install app dependencies
-RUN npm install --only=production
-
 # Expose the port
 EXPOSE 3000
 
 # Copy the workout data script
 COPY mieleGateway.js /
 COPY package.json /
+
+# Install app dependencies
+RUN npm install
 
 # Copy the startup script
 COPY run.sh /
