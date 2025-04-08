@@ -32,7 +32,6 @@ try:
         print("Warning: GROUP_ID length is not 8 bytes (16 hex chars).")
 except ValueError:
     print("Error: GROUP_KEY or GROUP_ID environment variables contain invalid hex characters.")
-    # Handle error appropriately, e.g., exit or use placeholder that signals an error
     group_key = bytes(64) # Use placeholder on error
     group_id = bytes(8)   # Use placeholder on error
 
@@ -96,7 +95,9 @@ def iterate_to_all_hrefs(obj, host, base_path):
     if isinstance(obj, dict):
         for key, value in obj.items():
             if key == 'href' and isinstance(value, str) and value:
-                full_target_path = f"{base_path.rstrip('/')}/{value.lstrip('/')}"
+                relative_path = value.lstrip('/')
+                base = base_path.rstrip('/')
+                full_target_path = f"{base}/{relative_path}" if base != '/' else f"/{relative_path}"
                 proxy_link = f'/explore/{host}/{full_target_path.lstrip("/")}'
                 obj[key] = f'<a href="{proxy_link}">{value}</a>'
             else: iterate_to_all_hrefs(value, host, base_path)
@@ -106,40 +107,43 @@ def iterate_to_all_hrefs(obj, host, base_path):
 # --- Route Definitions ---
 @app.route('/init/<path:resource>', methods=['GET'])
 def init(resource):
-    """Handles the initial commissioning request to the device."""
+    """
+    Handles the initial commissioning request to the device.
+    Sends an *UNSIGNED* PUT request, assuming device doesn't know keys yet.
+    """
     if debug_log: print(f"\n=== INIT Request Received ===\nRequest URL: {request.url}")
     path_parts = resource.strip('/').split('/')
     if not path_parts: return jsonify({'error': 'Missing host in path'}), 400
     host = path_parts[0]
     if not is_valid_host(host): return jsonify({'error': f"Invalid host format provided: '{host}'"}), 400
-    init_resource_path = '/Security/Commissioning/'
+
+    init_resource_path = '/Security/Commissioning/' # Standard path for commissioning
     target_url = f'http://{host}{init_resource_path}'
+
     try:
         current_time_gmt = get_current_time_in_http_format()
+        content_type_header = 'application/json; charset=utf-8' # Define Content-Type
+        payload_data = { 'GroupID': group_id.hex().upper(), 'GroupKey': group_key.hex().upper() }
         headers = {
             'Accept': accept_header, 'Date': current_time_gmt,
             'User-Agent': 'Miele@mobile 2.3.3 Android', 'Host': host,
-            'Accept-Encoding': 'gzip', 'Content-Type': 'application/json; charset=utf-8'
+            'Accept-Encoding': 'gzip', 'Content-Type': content_type_header,
         }
-        payload_data = { 'GroupID': group_id.hex().upper(), 'GroupKey': group_key.hex().upper() }
         if debug_log:
             print(f"Target URL: PUT {target_url}")
             print(f"Request Headers: {json.dumps(headers, indent=2)}")
-            print(f"Request Body: {json.dumps(payload_data, indent=2)}")
+            print(f"Request Body (for sending): {json.dumps(payload_data, indent=2)}")
+            print(f"(Sending INIT request UNSIGNED)")
         response = req.put(target_url, headers=headers, json=payload_data, timeout=20)
         if debug_log:
-             print(f"--- INIT Response ---\nStatus Code: {response.status_code}")
+             print(f"--- INIT Response ---")
+             print(f"Status Code: {response.status_code}")
              print(f"Response Headers: {json.dumps(dict(response.headers), indent=2)}")
              try: print(f"Response JSON: {response.json()}")
              except json.JSONDecodeError: print(f"Response Content (non-JSON or empty): {response.text}")
         response.raise_for_status()
         return response.content, response.status_code, response.headers.items()
-    except req.exceptions.HTTPError as e:
-        status_code = e.response.status_code if e.response is not None else 500
-        error_message = f"HTTP error from device: {status_code}"
-        details = e.response.text if e.response is not None and e.response.text else 'No details provided.'
-        print(f'HTTP error during /init request to {host}: {status_code} {e.response.reason if e.response is not None else ""}\nResponse body: {details}')
-        return jsonify({'error': error_message, 'details': details}), status_code
+    except req.exceptions.HTTPError as e: status_code = e.response.status_code if e.response is not None else 500; error_message = f"HTTP error from device: {status_code}"; details = e.response.text if e.response is not None and e.response.text else 'No details provided.'; print(f'HTTP error during /init request to {host}: {status_code} {e.response.reason if e.response is not None else ""}\nResponse body: {details}'); return jsonify({'error': error_message, 'details': details}), status_code
     except req.exceptions.Timeout: print(f'Timeout during /init request to {host}'); return jsonify({'error': 'Device communication timed out'}), 504
     except req.exceptions.ConnectionError: print(f'Connection error during /init request to {host}'); return jsonify({'error': 'Device connection refused or unavailable'}), 503
     except req.exceptions.RequestException as e: print(f'Network request error during /init to {host}: {e}'); return jsonify({'error': f'Network request failed: {e}'}), 500
@@ -173,10 +177,14 @@ def main_route(resource, explore_mode=False):
     if debug_log: print(f"Target Host: {host}\nOriginal had trailing slash: {original_request_path_had_trailing_slash}\nFinal Target Resource Path (used for signing & URL): '{resource_path_on_device}'")
     try:
         current_time_gmt = get_current_time_in_http_format()
-        # Prepare Auth Signature (ASCII encoding)
+        # Prepare Auth Signature
         signing_string = f'GET\n{host}{resource_path_on_device}\n\n{accept_header}\n{current_time_gmt}\n'
-        try: signing_bytes = signing_string.encode('ascii'); #if debug_log: print("Using ASCII encoding for signing string.") # Redundant with raw print below
-        except UnicodeEncodeError: print("Warning: Signing string non-ASCII, falling back to UTF-8."); signing_bytes = signing_string.encode('utf-8')
+
+        # --- MODIFICATION: Revert signing encoding back to UTF-8 ---
+        signing_bytes = signing_string.encode('utf-8')
+        if debug_log: print("Using UTF-8 encoding for signing string.")
+        # --- End Modification ---
+
         signature_bytes = hmac.new(group_key, signing_bytes, hashlib.sha256).digest()
         signature_hex = signature_bytes.hex().upper()
         auth_header_value = f'MieleH256 {group_id.hex().upper()}:{signature_hex}'
@@ -226,19 +234,12 @@ if __name__ == '__main__':
     port = int(os.environ.get('PORT', 3000))
     print(f"--- Miele Proxy Server Starting ---")
     print(f"Listening on: http://0.0.0.0:{port}")
-
-    # --- MODIFIED: Print full keys only if debug_log is True ---
     if debug_log:
-        # WARNING: Printing full keys to log can be a security risk!
-        print(f"Using Group ID (Debug): {group_id_hex}") # Print full hex ID
-        print(f"Using Group Key (Debug): {group_key_hex}") # Print full hex key
+        print(f"Using Group ID (Debug): {group_id_hex}")
+        print(f"Using Group Key (Debug): {group_key_hex}")
     else:
-        # Original masked output for non-debug mode
         print(f"Using Group ID: ...{group_id.hex()[-4:].upper() if len(group_id)==8 else 'Invalid Length'}")
         print(f"Using Group Key: {'Set (length OK)' if len(group_key)==64 else 'Invalid Length or Default'}")
-    # --- END MODIFICATION ---
-
     print(f"Debug Logging: {'Enabled' if debug_log else 'Disabled'}")
     print(f"---------------------------------")
-    # Set debug=False for production/stable use
     app.run(host='0.0.0.0', port=port, debug=False, use_reloader=True)
