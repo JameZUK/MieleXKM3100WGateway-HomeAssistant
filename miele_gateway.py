@@ -16,7 +16,7 @@ app = Flask(__name__)
 
 # --- Configuration ---
 # Debug flag - Set to True for verbose logging AND printing full keys on startup
-debug_log = True # <<< SET TO True TO ENABLE DEBUG LOGGING AND KEY PRINTING >>>
+debug_log = False # <<< SET TO True TO ENABLE DEBUG LOGGING AND KEY PRINTING >>>
 
 # Group Key and Group ID from environment variables or default values
 # Ensure your actual keys are set as environment variables for security
